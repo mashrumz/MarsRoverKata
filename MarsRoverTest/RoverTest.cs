@@ -1,10 +1,12 @@
 using MarsRover;
+using Moq;
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 
 namespace MarsRoverTest
 {
-    public class Tests
+    public class RoverTest
     {
         private static IEnumerable<TestCaseData> ForwardMovementTestData
         {
@@ -50,12 +52,49 @@ namespace MarsRoverTest
             }
         }
 
+        private static IEnumerable <TestCaseData> GridTestData
+        {
+            get
+            {
+                yield return new TestCaseData((1, 1));
+                yield return new TestCaseData((2, 1));
+                yield return new TestCaseData((1, 2));
+                yield return new TestCaseData((2, 2));
+            }
+        }
+
         private Rover rover;
+        private Mock<IGrid> gridMock = new Mock<IGrid>();
 
         [SetUp]
         public void Setup()
         {
-            rover = new Rover(3,3);
+            gridMock.Reset();
+            rover = new Rover(new Grid(3,3));
+        }
+
+        [Test, TestCaseSource(nameof(GridTestData))]
+        public void MoveForwardTest((int, int) expectedPosition)
+        {
+            gridMock.Setup(g => g.WrapAround(It.IsAny<(int, int)>(), It.IsAny<(int, int)>()))
+                .Returns(expectedPosition);
+            rover = new Rover(gridMock.Object);
+            rover.Position = (0, 0);
+            rover.Direction = 'N';
+            Assert.IsTrue(rover.MoveForward());
+            Assert.AreEqual(expectedPosition, rover.Position);
+        }
+
+        [Test, TestCaseSource(nameof(GridTestData))]
+        public void MoveBackwardTest((int, int) expectedPosition)
+        {
+            gridMock.Setup(g => g.WrapAround(It.IsAny<(int, int)>(), It.IsAny<(int, int)>()))
+                .Returns(expectedPosition);
+            rover = new Rover(gridMock.Object);
+            rover.Position = (0, 0);
+            rover.Direction = 'N';
+            Assert.IsTrue(rover.MoveBackward());
+            Assert.AreEqual(expectedPosition, rover.Position);
         }
 
         [Test, TestCaseSource(nameof(ForwardMovementTestData))]
@@ -162,6 +201,54 @@ namespace MarsRoverTest
             rover.Position = (0, 0);
             rover.MoveBackward();
             Assert.AreEqual((2, 0), rover.Position);
+        }
+
+        [Test]
+        public void CatchingObstacleExceptionOnMovingForwardTest()
+        {
+            gridMock.Setup(g => g.WrapAround(It.IsAny<(int, int)>(), It.IsAny<(int, int)>()))
+                .Throws<ObstacleException>();
+            rover = new Rover(gridMock.Object);
+            rover.Direction = 'N';
+            rover.Position = (0, 0);
+            Assert.IsFalse(rover.MoveForward());
+            Assert.AreEqual((0, 0), rover.Position);
+        }
+
+        [Test]
+        public void CatchingObstacleExceptionOnMovingBackwardTest()
+        {
+            gridMock.Setup(g => g.WrapAround(It.IsAny<(int, int)>(), It.IsAny<(int, int)>()))
+                .Throws<ObstacleException>();
+            rover = new Rover(gridMock.Object);
+            rover.Direction = 'N';
+            rover.Position = (0, 0);
+            Assert.IsFalse(rover.MoveBackward());
+            Assert.AreEqual((0, 0), rover.Position);
+        }
+
+        [Test]
+        public void MovingForwardObstacleTest()
+        {
+            var grid = new Grid(3, 3);
+            grid.AddObstacle((0, 1));
+            rover = new Rover(grid);
+            rover.Direction = 'N';
+            rover.Position = (0, 0);
+            Assert.IsFalse(rover.MoveForward());
+            Assert.AreEqual((0, 0), rover.Position);
+        }
+
+        [Test]
+        public void MovingBackwardObstacleTest()
+        {
+            var grid = new Grid(3, 3);
+            grid.AddObstacle((0, 0));
+            rover = new Rover(grid);
+            rover.Direction = 'N';
+            rover.Position = (0, 1);
+            Assert.IsFalse(rover.MoveBackward());
+            Assert.AreEqual((0, 1), rover.Position);
         }
     }
 }

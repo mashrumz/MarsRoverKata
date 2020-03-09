@@ -5,13 +5,11 @@ namespace MarsRover
 {
     public class Rover
     {
-        private readonly int Width;
-        private readonly int Height;
+        private readonly IGrid Grid;
 
-        public Rover(int width, int height)
+        public Rover(IGrid grid)
         {
-            Width = width;
-            Height = height;
+            Grid = grid;
         }
 
         public (int x, int y) Position { get; set; }
@@ -51,38 +49,30 @@ namespace MarsRover
                     {'E', (-1, 0)}
                 };
 
-        public void MoveForward()
+        public bool MoveForward()
         {
-            CalculateNewPosition(ForwardMovementPositionDeltas);
-        }
-
-        public void MoveBackward()
-        {
-            CalculateNewPosition(BackwardMovementPositionDeltas);
-        }
-
-        private void CalculateNewPosition(IDictionary<char, (int, int)> positionDeltas)
-        {
-            var (dx, dy) = positionDeltas[Direction];
-            (int x, int y) newPosition = Position;
-            newPosition.x += dx;
-            newPosition.y += dy;
-            WrapAroundTheGrid(newPosition);
-        }
-
-        private void WrapAroundTheGrid((int x, int y) newPosition)
-        {
-            if (newPosition.x >= Width || newPosition.x < 0)
+            try
             {
-                newPosition.x = (newPosition.x + Width) % Width;
+                Position = Grid.WrapAround(Position, ForwardMovementPositionDeltas[Direction]);
+                return true;
             }
-
-            if (newPosition.y >= Height || newPosition.y < 0)
+            catch (ObstacleException)
             {
-                newPosition.y = (newPosition.y + Height) % Height;
+                return false;
             }
+        }
 
-            Position = newPosition;
+        public bool MoveBackward()
+        {
+            try
+            {
+                Position = Grid.WrapAround(Position, BackwardMovementPositionDeltas[Direction]);
+                return true;
+            }
+            catch (ObstacleException)
+            {
+                return false;
+            }
         }
 
         public void TurnLeft()
