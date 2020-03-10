@@ -1,0 +1,7 @@
+﻿Executing command f: Success. Current position (1, 0). Facing S
+Executing command l: Success. Current position (1, 0). Facing E
+Executing command f: Success. Current position (2, 0). Facing E
+Executing command l: Success. Current position (2, 0). Facing N
+Executing command f: Success. Current position (2, 1). Facing N
+Executing command l: Success. Current position (2, 1). Facing W
+Executing command f: Success. Current position (1, 1). Facing W

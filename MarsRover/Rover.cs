@@ -49,29 +49,27 @@ namespace MarsRover
                     {'E', (-1, 0)}
                 };
 
-        public bool MoveForward()
+        public void MoveForward()
         {
             try
             {
                 Position = Grid.WrapAround(Position, ForwardMovementPositionDeltas[Direction]);
-                return true;
             }
             catch (ObstacleException)
             {
-                return false;
+                throw;
             }
         }
 
-        public bool MoveBackward()
+        public void MoveBackward()
         {
             try
             {
                 Position = Grid.WrapAround(Position, BackwardMovementPositionDeltas[Direction]);
-                return true;
             }
             catch (ObstacleException)
             {
-                return false;
+                throw;
             }
         }
 
@@ -83,6 +81,49 @@ namespace MarsRover
         public void TurnRight()
         {
             currentDirectionIndex = (currentDirectionIndex + 1) % 4;
+        }
+
+        public void ExecuteCommand(char command)
+        {
+            try
+            {
+                switch (command)
+                {
+                    case 'l':
+                        TurnLeft();
+                        break;
+                    case 'r':
+                        TurnRight();
+                        break;
+                    case 'f':
+                        MoveForward();
+                        break;
+                    case 'b':
+                        MoveBackward();
+                        break;
+                }
+            }
+            catch (ObstacleException)
+            {
+                throw;
+            }
+        }
+
+        public void ExecuteCommandSequence(char[] sequence)
+        {
+            try
+            {
+                foreach (var command in sequence)
+                {
+                    Console.Write($"Executing command {command}: ");
+                    ExecuteCommand(command);
+                    Console.WriteLine($"Success. Current position {Position}. Facing {Direction}");
+                }
+            }
+            catch (ObstacleException ex)
+            {
+                Console.WriteLine($"Coudln't execute command. Obstacle detected at {ex.Position}");
+            }
         }
     }
 }

@@ -1,11 +1,17 @@
+using ApprovalTests;
+using ApprovalTests.Reporters;
 using MarsRover;
 using Moq;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 
 namespace MarsRoverTest
 {
+    [TestFixture]
+    [UseReporter(typeof(DiffReporter))]
     public class RoverTest
     {
         private static IEnumerable<TestCaseData> ForwardMovementTestData
@@ -63,6 +69,16 @@ namespace MarsRoverTest
             }
         }
 
+        private static IEnumerable<TestCaseData> SequenceTestData
+        {
+            get
+            {
+                yield return new TestCaseData((0, 0), 'N', new[] { 'f', 'l', 'f', 'r', 'b'}, new[] {'N','W','W','N', 'N'}, new[] { (0, 1), (0, 1), (2, 1), (2, 1), (2,0) });
+                yield return new TestCaseData((0, 2), 'N', new[] { 'f', 'l', 'f', 'r', 'b' }, new[] { 'N', 'W', 'W', 'N', 'N' }, new[] { (0, 0), (0, 0), (2, 0), (2, 0), (2, 2) });
+                yield return new TestCaseData((1, 1), 'S', new[] { 'f', 'l', 'f', 'l', 'f', 'l', 'f' }, new[] { 'S', 'E', 'E', 'N', 'N', 'W', 'W' }, new[] { (1, 0), (1, 0), (2, 0), (2, 0), (2, 1), (2, 1), (1, 1) });
+            }
+        }
+
         private Rover rover;
         private Mock<IGrid> gridMock = new Mock<IGrid>();
 
@@ -81,7 +97,7 @@ namespace MarsRoverTest
             rover = new Rover(gridMock.Object);
             rover.Position = (0, 0);
             rover.Direction = 'N';
-            Assert.IsTrue(rover.MoveForward());
+            Assert.DoesNotThrow(() => rover.MoveForward());
             Assert.AreEqual(expectedPosition, rover.Position);
         }
 
@@ -93,7 +109,7 @@ namespace MarsRoverTest
             rover = new Rover(gridMock.Object);
             rover.Position = (0, 0);
             rover.Direction = 'N';
-            Assert.IsTrue(rover.MoveBackward());
+            Assert.DoesNotThrow(() => rover.MoveBackward());
             Assert.AreEqual(expectedPosition, rover.Position);
         }
 
@@ -211,7 +227,7 @@ namespace MarsRoverTest
             rover = new Rover(gridMock.Object);
             rover.Direction = 'N';
             rover.Position = (0, 0);
-            Assert.IsFalse(rover.MoveForward());
+            Assert.Throws<ObstacleException>(() => rover.MoveForward());
             Assert.AreEqual((0, 0), rover.Position);
         }
 
@@ -223,7 +239,7 @@ namespace MarsRoverTest
             rover = new Rover(gridMock.Object);
             rover.Direction = 'N';
             rover.Position = (0, 0);
-            Assert.IsFalse(rover.MoveBackward());
+            Assert.Throws<ObstacleException>(() => rover.MoveBackward());
             Assert.AreEqual((0, 0), rover.Position);
         }
 
@@ -235,7 +251,7 @@ namespace MarsRoverTest
             rover = new Rover(grid);
             rover.Direction = 'N';
             rover.Position = (0, 0);
-            Assert.IsFalse(rover.MoveForward());
+            Assert.Throws<ObstacleException>(() => rover.MoveForward());
             Assert.AreEqual((0, 0), rover.Position);
         }
 
@@ -247,8 +263,65 @@ namespace MarsRoverTest
             rover = new Rover(grid);
             rover.Direction = 'N';
             rover.Position = (0, 1);
-            Assert.IsFalse(rover.MoveBackward());
+            Assert.Throws<ObstacleException>(() => rover.MoveBackward());
             Assert.AreEqual((0, 1), rover.Position);
+        }
+
+        [Test, TestCaseSource(nameof(SequenceTestData))]
+        public void ProcessSequenceTest((int, int) startingPosition, char startingDirection, char[] sequence, char[] expectedDirections, (int, int)[] expectedPositions)
+        {
+            var grid = new Grid(3, 3);
+            rover = new Rover(grid)
+            {
+                Direction = startingDirection,
+                Position = startingPosition
+            };
+
+            for (var i = 0; i < sequence.Length; i++)
+            {
+                rover.ExecuteCommand(sequence[i]);
+                Assert.AreEqual(expectedDirections[i], rover.Direction);
+                Assert.AreEqual(expectedPositions[i], rover.Position);
+            }
+        }
+
+        [Test]
+        public void ProcessSequence_ApprovalTest()
+        {
+            StringBuilder fakeoutput = new StringBuilder();
+            Console.SetOut(new StringWriter(fakeoutput));
+            Console.SetIn(new StringReader("a\n"));
+
+            rover = new Rover(new Grid(3, 3))
+            {
+                Direction = 'S',
+                Position = (1,1)
+            };
+            rover.ExecuteCommandSequence(new[] { 'f', 'l', 'f', 'l', 'f', 'l', 'f' });
+
+            var output = fakeoutput.ToString();
+            Approvals.Verify(output);
+        }
+
+        [Test]
+        public void ProcessSequenceWithObstacle_ApprovalTest()
+        {
+            StringBuilder fakeoutput = new StringBuilder();
+            Console.SetOut(new StringWriter(fakeoutput));
+            Console.SetIn(new StringReader("a\n"));
+
+            var grid = new Grid(3, 3);
+            grid.AddObstacle((2, 1));
+            rover = new Rover(grid)
+            {
+                Direction = 'S',
+                Position = (1, 1)
+            };
+
+            rover.ExecuteCommandSequence(new[] { 'f', 'l', 'f', 'l', 'f', 'l', 'f' });
+
+            var output = fakeoutput.ToString();
+            Approvals.Verify(output);
         }
     }
 }

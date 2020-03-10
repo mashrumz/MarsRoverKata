@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 namespace MarsRoverTest
 {
+    [TestFixture]
     public class GridTest
     {
         private static IEnumerable<TestCaseData> ObstacleTestData
